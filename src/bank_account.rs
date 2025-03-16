@@ -72,3 +72,50 @@ where
             .push(Transaction::Withdrawal(amount, (self.date_getter)()));
     }
 }
+
+#[cfg(test)]
+pub mod bank_account_should {
+    use crate::transaction::Transaction::{self, Deposit, Withdrawal};
+    use chrono::{NaiveDate, TimeZone, Utc};
+
+    use super::{BankAccount, HandlesTransactions};
+
+    impl PartialEq for Transaction {
+        fn eq(&self, other: &Self) -> bool {
+            match (self, other) {
+                (Self::Deposit(l0, l1), Self::Deposit(r0, r1)) => l0 == r0 && l1 == r1,
+                (Self::Withdrawal(l0, l1), Self::Withdrawal(r0, r1)) => l0 == r0 && l1 == r1,
+                _ => false,
+            }
+        }
+    }
+
+    const NAIVE_DATE: chrono::NaiveDateTime = NaiveDate::from_ymd_opt(2025, 1, 1)
+        .unwrap()
+        .and_hms_opt(12, 0, 0)
+        .unwrap();
+
+    #[test]
+    pub fn add_deposits_to_transactions() {
+        let date_getter = || Utc.from_utc_datetime(&NAIVE_DATE);
+        let printer = |_statement: String| {};
+
+        let mut bank_account = BankAccount::new(date_getter, printer);
+        bank_account.deposit(100);
+        assert!(bank_account
+            .transactions
+            .contains(&Deposit(100, Utc.from_utc_datetime(&NAIVE_DATE))));
+    }
+
+    #[test]
+    pub fn add_withdrawals_to_transactions() {
+        let date_getter = || Utc.from_utc_datetime(&NAIVE_DATE);
+        let printer = |_statement: String| {};
+
+        let mut bank_account = BankAccount::new(date_getter, printer);
+        bank_account.withdraw(100);
+        assert!(bank_account
+            .transactions
+            .contains(&Withdrawal(100, Utc.from_utc_datetime(&NAIVE_DATE))));
+    }
+}
