@@ -10,6 +10,7 @@ mod tests {
 
     use super::*;
 
+    // Helper function improves test readability
     fn mock_datetime(
         year: i32,
         month: u32,
@@ -19,9 +20,9 @@ mod tests {
         second: u32,
     ) -> DateTime<Utc> {
         let naive_date = NaiveDate::from_ymd_opt(year, month, day)
-            .unwrap()
+            .expect("Error creating mock date")
             .and_hms_opt(hour, minute, second)
-            .unwrap();
+            .expect("Error creating mock time");
         Utc.from_utc_datetime(&naive_date)
     }
 
@@ -32,9 +33,11 @@ mod tests {
             received_statement.borrow_mut().push_str(&statement);
         };
         let mocked_dates = RefCell::from(VecDeque::from([
-            mock_datetime(2025, 1, 1, 12, 0, 0),
-            mock_datetime(2025, 4, 2, 10, 30, 22),
-            mock_datetime(2025, 3, 3, 15, 45, 52),
+            mock_datetime(2025, 1, 2, 12, 0, 0),
+            mock_datetime(2025, 1, 20, 10, 30, 22),
+            mock_datetime(2025, 2, 5, 15, 45, 52),
+            mock_datetime(2025, 2, 8, 9, 12, 2),
+            mock_datetime(2025, 3, 2, 22, 41, 19),
         ]));
         let date_getter = || {
             mocked_dates
@@ -45,10 +48,18 @@ mod tests {
         let mut bank_account = BankAccount::new(date_getter, printer);
         bank_account.deposit(100);
         bank_account.deposit(25);
+        bank_account.withdraw(12);
         bank_account.deposit(25);
+        bank_account.deposit(20);
         bank_account.print_statement();
-        const EXPECTED_OUTPUT: &str =
-            "01-01-2025 12:00:00 | 100 \n 02-04-2025 10:30:22 | 25 \n 03-03-2025 15:45:52 | 25 \n ";
+
+        const EXPECTED_OUTPUT: &str = r#"02-01-2025 12:00:00 | 100
+20-01-2025 10:30:22 | 25
+05-02-2025 15:45:52 | -12
+08-02-2025 09:12:02 | 25
+02-03-2025 22:41:19 | 20
+
+Balance: 158"#;
         assert_eq!(*received_statement.borrow(), EXPECTED_OUTPUT);
     }
 }
