@@ -1,14 +1,10 @@
-use std::ops::{AddAssign, SubAssign};
-
 use chrono::{DateTime, Utc};
 
 use crate::transaction::Transaction;
 
-type TransDate = DateTime<Utc>;
-
 pub struct BankAccount<TDate, TPrinter>
 where
-    TDate: Fn() -> TransDate,
+    TDate: Fn() -> DateTime<Utc>,
     TPrinter: Fn(String),
 {
     transactions: Vec<Transaction>,
@@ -18,39 +14,18 @@ where
 
 impl<TDate, TPrinter> BankAccount<TDate, TPrinter>
 where
-    TDate: Fn() -> TransDate,
+    TDate: Fn() -> DateTime<Utc>,
     TPrinter: Fn(String),
 {
-    fn format_date_time(date_time: &DateTime<Utc>) -> String {
-        date_time.format("%d-%m-%Y %H:%M:%S").to_string()
-    }
-
     pub fn print_statement(&self) {
-        let accumulated_transaction_data =
-            self.transactions
-                .iter()
-                .fold((String::new(), 0_usize), |mut acc, t| {
-                    match t {
-                        Transaction::Deposit(deposit, date_time) => {
-                            acc.0.push_str(&format!(
-                                "{} | {}\n",
-                                Self::format_date_time(date_time),
-                                deposit
-                            ));
-                            acc.1.add_assign(deposit);
-                        }
-                        Transaction::Withdrawal(withdrawal, date_time) => {
-                            acc.0.push_str(&format!(
-                                "{} | -{}\n",
-                                Self::format_date_time(date_time),
-                                withdrawal
-                            ));
-                            acc.1.sub_assign(withdrawal);
-                        }
-                    }
-                    acc
-                });
-        let (mut statement, balance) = accumulated_transaction_data;
+        let (mut statement, balance): (String, isize) = self.transactions.iter().fold(
+            (String::new(), 0),
+            |(mut statement, mut balance), transaction| {
+                statement.push_str(&format!("{}", transaction));
+                transaction.apply_amount(&mut balance);
+                (statement, balance)
+            },
+        );
         statement.push_str(&format!("\nBalance: {}", balance));
         (self.printer)(statement);
     }
@@ -58,14 +33,14 @@ where
 
 impl<TDate, TPrinter> BankAccount<TDate, TPrinter>
 where
-    TDate: Fn() -> TransDate,
+    TDate: Fn() -> DateTime<Utc>,
     TPrinter: Fn(String),
 {
 }
 
 impl<TDate, TPrinter> BankAccount<TDate, TPrinter>
 where
-    TDate: Fn() -> TransDate,
+    TDate: Fn() -> DateTime<Utc>,
     TPrinter: Fn(String),
 {
     pub fn new(date_getter: TDate, printer: TPrinter) -> Self {
@@ -84,7 +59,7 @@ pub trait HandlesTransactions {
 
 impl<TDate, TPrinter> HandlesTransactions for BankAccount<TDate, TPrinter>
 where
-    TDate: Fn() -> TransDate,
+    TDate: Fn() -> DateTime<Utc>,
     TPrinter: Fn(String),
 {
     fn deposit(&mut self, amount: usize) {

@@ -53,11 +53,11 @@ mod tests {
         bank_account.deposit(20);
         bank_account.print_statement();
 
-        const EXPECTED_OUTPUT: &str = r#"02-01-2025 12:00:00 | 100
-20-01-2025 10:30:22 | 25
+        const EXPECTED_OUTPUT: &str = r#"02-01-2025 12:00:00 | +100
+20-01-2025 10:30:22 | +25
 05-02-2025 15:45:52 | -12
-08-02-2025 09:12:02 | 25
-02-03-2025 22:41:19 | 20
+08-02-2025 09:12:02 | +25
+02-03-2025 22:41:19 | +20
 
 Balance: 158"#;
         assert_eq!(*received_statement.borrow(), EXPECTED_OUTPUT);
